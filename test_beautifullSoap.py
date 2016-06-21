@@ -29,7 +29,7 @@ with Display(visible=0, size=(800, 600)):
     rendered_html = Render(source_html).html
  
 # get the BeautifulSoup
-soup = BeautifulSoup(rendered_html, 'html.parser')
+soup = BeautifulSoup(str(rendered_html.toAscii), 'html.parser')
 
 print('title is %r' % soup.select_one('title').text)
 #print result.toAscii()
