@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from bs4 import  BeautifulSoup
 import requests
 import datetime, time
@@ -17,6 +18,7 @@ class WebPage(QtWebKit.QWebPage):
 		self._base_url="http://www.superprix.com.br/"
 		self._items = iter(items)
 		self._set_produtos = set_produtos
+		self._visitados = set()
 		self.fetchNext()
 
 	def fetchNext(self):
@@ -29,9 +31,9 @@ class WebPage(QtWebKit.QWebPage):
 		return True
 
 	def handleLoadFinished(self):
-		html = str(self.mainFrame().toHtml().toAscii()).encode('utf-8')
+		html = str(self.mainFrame().toHtml().toAscii())
 		soup = BeautifulSoup(html,"html5lib")
-		self._set_produtos(soup, self._link)
+		self._set_produtos(soup, self._link, self._visitados)
 		if not self.fetchNext():
 			print('# processing complete')
 			QtGui.qApp.quit()
@@ -132,7 +134,7 @@ def busca_sub_categoria (soup_element, url):
 	return sub_categorias
 
 	
-def set_produtos_categ (soup_element, url):
+def set_produtos_categ (soup_element, url, visitados):
 	"""
 		funcao para pegar todos os produtos de uma sessao e imprimir no arquivo de saida
 	"""
@@ -147,14 +149,23 @@ def set_produtos_categ (soup_element, url):
 	div_produtos = soup_element.findAll('div', {"class" : "details"})
 	for prod in div_produtos:
 		aux = prod.find('a', { "class" : "ng-binding" })
-		produto = {
-			'produto': aux.getText().strip().encode('utf-8'),
-			'preco': prod.find('span', { "class" : "actual-price" }).getText().strip().split(" ")[1],
-			'url': aux.attrs['href'].split("/")[1],
-			'sessao' : sessao,
-			'links': "",
-		}
-		fh.write(to_string(produto))
+		link = aux.attrs['href'].split("/")[1]
+		if link not in visitados:
+			visitados.add(link)
+			#Apelei por nao conseguir tratar corretamente a codificacao de acentuacao do nome.
+			aux_prod = aux.attrs['href'].split("/")[1].split("-")
+			nome_aux = ''
+			for nome in aux_prod:
+				nome_aux += nome + " "
+			#fim da apelacao
+			produto = {
+				'produto': nome_aux.strip(),
+				'preco': prod.find('span', { "class" : "actual-price" }).getText().strip().split(" ")[1],
+				'url': link,
+				'sessao' : sessao,
+				'links': "",
+			}
+			fh.write(to_string(produto))
 
 	fh.close()		
 	
@@ -197,11 +208,4 @@ if __name__ == '__main__':
 	#Comecando pela "bem-estar" para ter um ponto de partida
 	with Display(visible=0, size=(800, 600)):
 		visit_static_url("bem-estar",busca_categoria)
-
-
-	
-	
-
-
-
 
