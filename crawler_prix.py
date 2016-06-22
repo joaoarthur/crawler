@@ -31,7 +31,7 @@ class WebPage(QtWebKit.QWebPage):
 		return True
 
 	def handleLoadFinished(self):
-		html = str(self.mainFrame().toHtml().toAscii())
+		html = unicode(self.mainFrame().toHtml().toUtf8(), encoding="UTF-8")	
 		soup = BeautifulSoup(html,"html5lib")
 		self._set_produtos(soup, self._link, self._visitados)
 		if not self.fetchNext():
@@ -152,17 +152,11 @@ def set_produtos_categ (soup_element, url, visitados):
 		link = aux.attrs['href'].split("/")[1]
 		if link not in visitados:
 			visitados.add(link)
-			#Apelei por nao conseguir tratar corretamente a codificacao de acentuacao do nome.
-			aux_prod = aux.attrs['href'].split("/")[1].split("-")
-			nome_aux = ''
-			for nome in aux_prod:
-				nome_aux += nome + " "
-			#fim da apelacao
 			produto = {
-				'produto': nome_aux.strip(),
-				'preco': prod.find('span', { "class" : "actual-price" }).getText().strip().split(" ")[1],
-				'url': link,
-				'sessao' : sessao,
+				'produto':aux.getText().strip().encode('utf-8'),
+				'preco': prod.find('span', { "class" : "actual-price" }).getText().strip().split(" ")[1].encode('utf-8'),
+				'url': link.encode('utf-8'),
+				'sessao' : sessao.encode('utf-8'),
 				'links': "",
 			}
 			fh.write(to_string(produto))
@@ -184,13 +178,13 @@ def to_string (json_object):
 	"""
 		funcao para formatar produto no layout do arquivo de saida
 	"""
-	__nome_produto = json_object['produto'].encode('utf-8')
-	__preco = json_object['preco'].encode('utf-8')
-	__url = json_object['url'].encode('utf-8')
-	__sessao = json_object['sessao'].encode('utf-8')
+	__nome_produto = json_object['produto']
+	__preco = json_object['preco']
+	__url = json_object['url']
+	__sessao = json_object['sessao']
 	__final = __nome_produto + ";" + __preco + ";" + __sessao + ";" + __url + "\n"
 	
-	return __final.encode('utf-8')
+	return __final
 	
 	
 if __name__ == '__main__':
